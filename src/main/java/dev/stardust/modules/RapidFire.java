@@ -171,7 +171,7 @@ public class RapidFire extends Module {
                 mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
             } else if (autoCycleReload.get() && CrossbowItem.isCharged(current)) {
                 if (hasAmmo || mc.player.getOffHandStack().getItem() == Items.FIREWORK_ROCKET) {
-                    int slot = mc.player.getInventory().selectedSlot;
+                    int slot = ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot();
                     if (slot >= 0) {
                         for (int n = slot; n >= 0; n--) {
                             ItemStack stack = mc.player.getInventory().getStack(n);

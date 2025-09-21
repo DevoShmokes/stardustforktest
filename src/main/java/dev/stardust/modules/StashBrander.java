@@ -14,6 +14,7 @@ import dev.stardust.mixin.accessor.AnvilScreenAccessor;
 import net.minecraft.client.gui.screen.ingame.AnvilScreen;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.events.world.TickEvent;
+import meteordevelopment.meteorclient.events.world.PlaySoundEvent;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import dev.stardust.mixin.accessor.AnvilScreenHandlerAccessor;
 import meteordevelopment.meteorclient.systems.modules.Modules;
@@ -118,9 +119,17 @@ public class StashBrander extends Module {
     // See WorldMixin.java
     public boolean shouldMute() { return muteAnvils.get(); }
 
+    @EventHandler
+    private void onSoundPlay(PlaySoundEvent event) {
+        if (!muteAnvils.get()) return;
+        if (event.sound.getId().equals(SoundEvents.BLOCK_ANVIL_USE.id()) || event.sound.getId().equals(SoundEvents.BLOCK_ANVIL_BREAK.id())) {
+            event.cancel();
+        }
+    }
+
     private boolean hasValidItems(AnvilScreenHandler handler) {
         if (mc.player == null) return false;
-        for (int n = 0; n < mc.player.getInventory().main.size() + ANVIL_OFFSET; n++) {
+        for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size() + ANVIL_OFFSET; n++) {
             if (n == AnvilScreenHandler.OUTPUT_ID) continue;
             ItemStack stack = handler.getSlot(n).getStack();
             if ((blacklistMode.get() && !itemList.get().contains(stack.getItem()))
@@ -190,7 +199,7 @@ public class StashBrander extends Module {
         if (!hasValidItems(anvil)) finished();
         else if (input1.isEmpty() && input2.isEmpty()) {
             // fill input 1
-            for (int n = ANVIL_OFFSET; n < mc.player.getInventory().main.size() + ANVIL_OFFSET; n++) {
+            for (int n = ANVIL_OFFSET; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size() + ANVIL_OFFSET; n++) {
                 ItemStack stack = anvil.getSlot(n).getStack();
                 if ((blacklistMode.get() && !itemList.get().contains(stack.getItem()))
                     || (!blacklistMode.get() && itemList.get().contains(stack.getItem())))

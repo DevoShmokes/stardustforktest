@@ -247,12 +247,12 @@ public class PagePirate extends Module {
                     InvUtils.move().from(result.slot()).to(emptySlot.slot());
                     InvUtils.swap(emptySlot.slot(), true);
                 } else {
-                    FindItemResult nonCriticalSlot = InvUtils.find(stack -> !(stack.getItem() instanceof MiningToolItem) && !(stack.isIn(ItemTags.WEAPON_ENCHANTABLE)) && !stack.contains(DataComponentTypes.FOOD));
+                    FindItemResult nonCriticalSlot = InvUtils.find(stack -> !stack.contains(DataComponentTypes.TOOL) && !(stack.isIn(ItemTags.WEAPON_ENCHANTABLE)) && !stack.contains(DataComponentTypes.FOOD));
                     if (nonCriticalSlot.found() && nonCriticalSlot.slot() < 9) {
                         InvUtils.move().from(result.slot()).to(nonCriticalSlot.slot());
                         InvUtils.swap(nonCriticalSlot.slot(), true);
                     } else {
-                        InvUtils.move().from(result.slot()).to(mc.player.getInventory().selectedSlot);
+                        InvUtils.move().from(result.slot()).to(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
                     }
                 }
             }
@@ -430,7 +430,7 @@ public class PagePirate extends Module {
             piratedPages.add(coverPage);
         }
 
-        int slot = mc.player.getInventory().selectedSlot;
+        int slot = ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot();
         boolean shouldSign = finalizeCopy.get() && metadata != null;
         MsgUtil.sendModuleMsg("Successfully copied nearby book§a..!", this.name);
         piratedPages.addAll(filtered.stream().map(page -> page.replace("~pgprte~newline~", "\n")).toList());

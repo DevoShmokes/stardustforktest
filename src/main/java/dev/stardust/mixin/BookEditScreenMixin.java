@@ -12,7 +12,7 @@ import net.minecraft.client.gui.tooltip.Tooltip;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import dev.stardust.mixin.accessor.BookEditScreenAccessor;
+import dev.stardust.util.BookEditScreenHacks;
 import net.minecraft.client.gui.screen.ingame.BookEditScreen;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -47,10 +47,10 @@ public abstract class BookEditScreenMixin extends Screen {
         String color = btn.getMessage().getString().substring(0, 2);
 
         if (this.signing) {
-            ((BookEditScreenAccessor) this).getBookTitleSelectionManager().insert(color);
+            BookEditScreenHacks.insertIntoTitle((BookEditScreen) (Object) this, color);
         } else {
             this.didFormatPage = true;
-            ((BookEditScreenAccessor) this).getCurrentPageSelectionManager().insert(color);
+            BookEditScreenHacks.insertIntoCurrentPage((BookEditScreen) (Object) this, color);
         }
     }
 
@@ -61,10 +61,10 @@ public abstract class BookEditScreenMixin extends Screen {
         if (rainbowMode) {
             activeFormatting = format;
         }else if (this.signing) {
-            ((BookEditScreenAccessor) this).getBookTitleSelectionManager().insert(format);
+            BookEditScreenHacks.insertIntoTitle((BookEditScreen) (Object) this, format);
         } else {
             this.didFormatPage = true;
-            ((BookEditScreenAccessor) this).getCurrentPageSelectionManager().insert(format);
+            BookEditScreenHacks.insertIntoCurrentPage((BookEditScreen) (Object) this, format);
         }
     }
 
@@ -170,16 +170,16 @@ public abstract class BookEditScreenMixin extends Screen {
         didFormatPage = true;
         if (activeFormatting.equals("§r")) {
             activeFormatting = "";
-            ((BookEditScreenAccessor) this).getCurrentPageSelectionManager().insert("§r" + uCC());
+            BookEditScreenHacks.insertIntoCurrentPage((BookEditScreen) (Object) this, "§r" + uCC());
         } else {
-            ((BookEditScreenAccessor) this).getCurrentPageSelectionManager().insert(uCC() + activeFormatting);
+            BookEditScreenHacks.insertIntoCurrentPage((BookEditScreen) (Object) this, uCC() + activeFormatting);
         }
     }
 
     @Inject(method = "finalizeBook", at = @At("HEAD"))
     private void mixinFinalizeBook(CallbackInfo ci) {
         if (this.dirty && this.didFormatPage) {
-            ((BookEditScreenAccessor) this).getCurrentPageSelectionManager().insert("§r");
+            BookEditScreenHacks.insertIntoCurrentPage((BookEditScreen) (Object) this, "§r");
         }
     }
 
@@ -200,7 +200,7 @@ public abstract class BookEditScreenMixin extends Screen {
         }
 
         if (this.signing && !bookTools.autoTitles.get().trim().isEmpty()) {
-            ((BookEditScreenAccessor) this).getBookTitleSelectionManager().insert(bookTools.autoTitles.get());
+            BookEditScreenHacks.insertIntoTitle((BookEditScreen) (Object) this, bookTools.autoTitles.get());
         }
     }
 }

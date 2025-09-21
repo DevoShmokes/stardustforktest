@@ -5,12 +5,11 @@ import java.util.ArrayList;
 import dev.stardust.Stardust;
 import net.minecraft.text.Text;
 import dev.stardust.util.MsgUtil;
-import net.minecraft.text.HoverEvent;
+// import net.minecraft.text.HoverEvent;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.EnumSetting;
-import dev.stardust.mixin.accessor.ClientConnectionAccessor;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.settings.StringListSetting;
@@ -79,14 +78,10 @@ public class AdBlocker extends Module {
                                     this.name
                                 );
                             }
-                            ((ClientConnectionAccessor) mc.getNetworkHandler().getConnection()).invokeSendImmediately(
-                                new CommandExecutionC2SPacket(cmd + " " + culprit), null, true
-                            );
+                            mc.getNetworkHandler().getConnection().send(new CommandExecutionC2SPacket(cmd + " " + culprit));
                         }
                     } else {
-                        ((ClientConnectionAccessor) mc.getNetworkHandler().getConnection()).invokeSendImmediately(
-                            new CommandExecutionC2SPacket(cmd + " " + name), null, true
-                        );
+                        mc.getNetworkHandler().getConnection().send(new CommandExecutionC2SPacket(cmd + " " + name));
                     }
                 }
                 break;
@@ -104,15 +99,7 @@ public class AdBlocker extends Module {
     }
 
     private void extractNamesFromDeathMessage(Text msg, List<String> names) {
-        if (msg.getStyle().getHoverEvent() != null) {
-            HoverEvent event = msg.getStyle().getHoverEvent();
-            if (event.getAction().equals(HoverEvent.Action.SHOW_TEXT)) {
-                Text value = (Text) event.getValue(event.getAction());
-                if (value != null && value.getString().startsWith("Message ")) {
-                    names.add(value.getString().substring(8).trim());
-                }
-            }
-        }
+        // Hover event text parsing removed for 1.21.8 API changes.
 
         for (Text sibling : msg.getSiblings()) {
             extractNamesFromDeathMessage(sibling, names);

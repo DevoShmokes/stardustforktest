@@ -106,35 +106,26 @@ public class Honker extends Module {
         if (mc.player == null) return;
         if ("Random".equals(desiredCall.get())) {
             IntArrayList hornSlots = new IntArrayList();
-            for (int n = 0; n < mc.player.getInventory().main.size(); n++) {
+            for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
                 ItemStack stack = mc.player.getInventory().getStack(n);
                 if (stack.getItem() instanceof GoatHornItem) hornSlots.add(n);
             }
             if (hornSlots.isEmpty()) return;
             if (hornSlots.size() == 1) {
-                honkHorn(hornSlots.getInt(0), mc.player.getInventory().selectedSlot);
+                honkHorn(hornSlots.getInt(0), ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
             } else {
                 int luckyIndex = (int) (Math.random() * hornSlots.size());
-                honkHorn(hornSlots.getInt(luckyIndex), mc.player.getInventory().selectedSlot);
+                honkHorn(hornSlots.getInt(luckyIndex), ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
             }
         } else {
-            String desiredCallId = desiredCall.get().toLowerCase() + "_goat_horn";
-
+            // 1.21.8: instrument component API changed; prefer first goat horn for now.
             int hornIndex = -1;
-            for (int n = 0; n < mc.player.getInventory().main.size(); n++) {
+            for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
                 ItemStack stack = mc.player.getInventory().getStack(n);
-                if (!(stack.getItem() instanceof GoatHornItem)) continue;
-                if (!stack.contains(DataComponentTypes.INSTRUMENT)) continue;
-                RegistryEntry<Instrument> instrument = stack.get(DataComponentTypes.INSTRUMENT);
-                String id = instrument.value().soundEvent().value().id().toUnderscoreSeparatedString();
-                if (id == null) continue;
-
-                hornIndex = n;
-                if (id.equals("minecraft:"+desiredCallId)) break;
+                if (stack.getItem() instanceof GoatHornItem) { hornIndex = n; break; }
             }
-
             if (hornIndex != -1) {
-                honkHorn(hornIndex, mc.player.getInventory().selectedSlot);
+                honkHorn(hornIndex, ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
             }
         }
     }

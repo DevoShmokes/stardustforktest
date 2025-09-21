@@ -30,10 +30,11 @@
     "accessor.MusicTrackerAccessor",
     "BannerBlockEntityRendererMixin",
     "accessor.SourceManagerAccessor",
-    "accessor.BookEditScreenAccessor",
     "accessor.BookScreenContentsAccessor",
     "ClientPlayerInteractionManagerMixin",
+    "accessor.BookEditScreenAccessor",
     "AbstractSignBlockEntityRendererMixin",
+    "SignBlockEntityRendererMixin",
     "accessor.AbstractSignEditScreenAccessor"
   ],
   "injectors": {
@@ -49,12 +50,12 @@
     "LivingEntityMixin",
     "FireworkRocketEntityMixin",
     "accessor.GameProfileAccessor",
-    "accessor.ClientConnectionAccessor",
     "accessor.AnvilScreenHandlerAccessor",
     "accessor.DisconnectS2CPacketAccessor",
     "accessor.PlayerMoveC2SPacketAccessor",
     "accessor.PlayerListS2CPacketAccessor",
     "accessor.GrindstoneScreenHandlerAccessor",
-    "accessor.EntityTrackerUpdateS2CPacketAccessor"
+    "accessor.EntityTrackerUpdateS2CPacketAccessor",
+    "accessor.ClientConnectionAccessor"
   ]
 }

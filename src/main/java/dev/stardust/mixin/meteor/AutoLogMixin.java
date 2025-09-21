@@ -21,7 +21,7 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import dev.stardust.mixin.accessor.DisconnectS2CPacketAccessor;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
-import meteordevelopment.meteorclient.systems.modules.misc.AutoLog;
+import org.spongepowered.asm.mixin.Pseudo;
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -30,7 +30,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  *     Adds "Illegal Disconnect" functionality to Meteor's built-in AutoLog module.
  **/
-@Mixin(value = AutoLog.class, remap = false)
+@Pseudo
+@Mixin(targets = "meteordevelopment.meteorclient.systems.modules.misc.AutoLog", remap = false)
 public abstract class AutoLogMixin extends Module {
     public AutoLogMixin(Category category, String name, String description) {
         super(category, name, description);

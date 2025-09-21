@@ -77,9 +77,9 @@ public class WMeteorites extends WWidget {
     private long lastThrustSoundMs = 0;
     private @Nullable SoundInstance thrustInstance = null;
     public static final ReferenceList<SoundEvent> BREAK_SOUNDS = ReferenceList.of(
-        SoundEvents.BLOCK_CALCITE_BREAK, SoundEvents.ENTITY_TURTLE_EGG_BREAK,
-        SoundEvents.BLOCK_SUSPICIOUS_GRAVEL_BREAK, SoundEvents.BLOCK_ANCIENT_DEBRIS_BREAK,
-        SoundEvents.BLOCK_TUFF_BREAK, SoundEvents.BLOCK_RESIN_BREAK, SoundEvents.BLOCK_DEEPSLATE_BREAK
+        dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_CALCITE_BREAK), dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_TURTLE_EGG_BREAK),
+        dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_SUSPICIOUS_GRAVEL_BREAK), dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_ANCIENT_DEBRIS_BREAK),
+        dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_TUFF_BREAK), dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_RESIN_BREAK), dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_DEEPSLATE_BREAK)
     );
 
     public WMeteorites(Meteorites module) {
@@ -433,13 +433,13 @@ public class WMeteorites extends WWidget {
                             player.phaseActive = false; // take remaining duration off of phase cd
                             player.phaseCooldownTimer = player.phaseCooldown - (player.phaseDuration - player.phaseTimer);
                             player.iFrames = Ship.IFRAMES_ON_EXIT_PHASE;
-                            playSound(SoundEvents.ENTITY_PLAYER_TELEPORT, 0.69f);
+                            playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_PLAYER_TELEPORT), 0.69f);
                         } else if (!player.phaseActive && player.phaseCooldownTimer <= 0) {
                             player.phaseTimer = 0;
                             player.phaseActive = true;
-                            playSound(SoundEvents.ENTITY_PLAYER_TELEPORT, 0.42f);
+                            playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_PLAYER_TELEPORT), 0.42f);
                         } else {
-                            playSound(SoundEvents.ENTITY_VILLAGER_NO, rng.nextFloat(0.969f, 1.1337f));
+                            playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_VILLAGER_NO), rng.nextFloat(0.969f, 1.1337f));
                         }
                     } else if (player.getPowerup().equals(Powerups.GRAVITY_WELL)) {
                         if (mouseInBounds) {
@@ -449,9 +449,9 @@ public class WMeteorites extends WWidget {
                                     player.gravityWellX = aimMouseLocalX;
                                     player.gravityWellY = aimMouseLocalY; // persist remaining duration if repositioned vv
                                     player.gravityWellTimer = player.gravityWellTimer > 0 ? player.gravityWellTimer : player.gravityWellDuration;
-                                    playSound(SoundEvents.BLOCK_END_PORTAL_FRAME_FILL, rng.nextFloat(0.969f, 1.1337f));
+                                    playSound(dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_END_PORTAL_FRAME_FILL), rng.nextFloat(0.969f, 1.1337f));
                                 } else {
-                                    playSound(SoundEvents.ENTITY_VILLAGER_NO, rng.nextFloat(0.969f, 1.1337f));
+                                    playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_VILLAGER_NO), rng.nextFloat(0.969f, 1.1337f));
                                 }
                             } else {
                                 double dx = player.gravityWellX - aimMouseLocalX;
@@ -461,7 +461,7 @@ public class WMeteorites extends WWidget {
                                 if (distFromCenter < Ship.GW_FALLOFF * Ship.GW_FALLOFF) {
                                     player.gravityWellCdTimer = 0; // able to reposition immediately while deployed duration is > 0
                                     player.gravityWellDeployed = false;
-                                    playSound(SoundEvents.ENTITY_ALLAY_ITEM_TAKEN, rng.nextFloat(0.969f, 1.1337f));
+                                    playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_ALLAY_ITEM_TAKEN), rng.nextFloat(0.969f, 1.1337f));
                                 }
                             }
                         }
@@ -473,7 +473,7 @@ public class WMeteorites extends WWidget {
                             player.lastHyperJump = System.currentTimeMillis();
                             player.doHyperspaceJump(poweredUp, true, width, height, this);
                         } else {
-                            playSound(SoundEvents.ENTITY_VILLAGER_NO, rng.nextFloat(0.969f, 1.1337f));
+                            playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_VILLAGER_NO), rng.nextFloat(0.969f, 1.1337f));
                         }
                     } else {
                         boolean poweredUp = player.getPowerup().equals(Powerups.SUPERCHARGED_FSD)
@@ -487,10 +487,10 @@ public class WMeteorites extends WWidget {
 
                             if (!poweredUp) {
                                 player.score -= Ship.HYPERSPACE_SCORE_COST;
-                                playSound(SoundEvents.ENTITY_VILLAGER_CELEBRATE, rng.nextFloat(0.969f, 1.1337f));
+                                playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_VILLAGER_CELEBRATE), rng.nextFloat(0.969f, 1.1337f));
                             }
                         } else {
-                            playSound(SoundEvents.ENTITY_VILLAGER_NO, rng.nextFloat(0.969f, 1.1337f));
+                            playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_VILLAGER_NO), rng.nextFloat(0.969f, 1.1337f));
                         }
                     }
                 }
@@ -597,9 +597,9 @@ public class WMeteorites extends WWidget {
             || (!CHEAT_MODE && wave % 3 == 0 && (player.getPowerup().equals(Powerups.NONE) || (player.getPowerup().equals(Powerups.STARDUST))))
         ) {
             player.gainNewPowerup(player.hasEntropy() ? player.getPowerup() : null, this);
-            playSound(SoundEvents.ENTITY_PLAYER_LEVELUP, rng.nextFloat(0.77f, 1.1337f));
+            playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_PLAYER_LEVELUP), rng.nextFloat(0.77f, 1.1337f));
         } else {
-            playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, rng.nextFloat(0.77f, 1.1337f));
+            playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP), rng.nextFloat(0.77f, 1.1337f));
         }
     }
 
@@ -866,7 +866,7 @@ public class WMeteorites extends WWidget {
                     if (mc == null) return;
                     if (mc.getSoundManager() == null) return;
                     thrustInstance = PositionedSoundInstance.master(
-                        SoundEvents.ITEM_ELYTRA_FLYING, 0.777f,
+                        dev.stardust.util.SoundUtil.se(SoundEvents.ITEM_ELYTRA_FLYING), 0.777f,
                         module.soundVolume.get().floatValue() * 0.69f
                     );
                     mc.getSoundManager().play(thrustInstance);

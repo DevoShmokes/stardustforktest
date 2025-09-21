@@ -50,7 +50,6 @@ import meteordevelopment.meteorclient.utils.Utils;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
-import dev.stardust.mixin.accessor.ClientConnectionAccessor;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -336,9 +335,9 @@ public class SignHistorian extends Module {
                 try {
                     String[] parts = sign.split(" -\\|- ");
                     if (parts.length != 2) continue;
-                    NbtCompound reconstructed = StringNbtReader.parse(parts[0].trim());
-                    NbtCompound stateReconstructed = StringNbtReader.parse(parts[1].trim());
-                    BlockPos bPos = BlockEntity.posFromNbt(reconstructed);
+                    NbtCompound reconstructed = NbtHelper.fromNbtProviderString(parts[0].trim());
+                    NbtCompound stateReconstructed = NbtHelper.fromNbtProviderString(parts[1].trim());
+                    BlockPos bPos = new BlockPos(reconstructed.getInt("x").orElse(0), reconstructed.getInt("y").orElse(0), reconstructed.getInt("z").orElse(0));
 
                     DataResult<BlockState> result = BlockState.CODEC.parse(NbtOps.INSTANCE, stateReconstructed);
                     BlockState state = result.result().orElse(null);
@@ -670,14 +669,14 @@ public class SignHistorian extends Module {
         Vec3d hitVec = Vec3d.ofCenter(pos);
         BlockHitResult hit = new BlockHitResult(hitVec, mc.player.getHorizontalFacing().getOpposite(), pos, false);
 
-        ItemStack current = mc.player.getInventory().getMainHandStack();
+        ItemStack current = mc.player.getMainHandStack();
         if (current.getItem() != dye) {
-            for (int n = 0; n < mc.player.getInventory().main.size(); n++) {
+            for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
                 ItemStack stack = mc.player.getInventory().getStack(n);
                 if (stack.getItem() == dye) {
                     if (current.getItem() instanceof SignItem && current.getCount() > 1) dyeSlot = n;
                     if (n < 9) InvUtils.swap(n, true);
-                    else InvUtils.move().from(n).to(mc.player.getInventory().selectedSlot);
+                    else InvUtils.move().from(n).to(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
 
                     timer = 3;
                     return;
@@ -825,7 +824,7 @@ public class SignHistorian extends Module {
             ++packetTimer;
             if (packetTimer >= packetDelay.get()) {
                 packetTimer = 0;
-                ((ClientConnectionAccessor) mc.getNetworkHandler().getConnection()).invokeSendImmediately(
+                mc.getNetworkHandler().getConnection().send(
                     packetQueue.removeFirst(), null, true
                 );
             }
@@ -844,7 +843,7 @@ public class SignHistorian extends Module {
 
         if (timer == -1 && dyeSlot != -1) {
             if (dyeSlot < 9) InvUtils.swapBack();
-            else InvUtils.move().from(mc.player.getInventory().selectedSlot).to(dyeSlot);
+            else InvUtils.move().from(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot()).to(dyeSlot);
             dyeSlot = -1;
             timer = 3;
         }

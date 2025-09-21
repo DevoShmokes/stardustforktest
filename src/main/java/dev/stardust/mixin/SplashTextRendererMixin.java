@@ -16,15 +16,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  **/
 @Mixin(SplashTextRenderer.class)
 public class SplashTextRendererMixin {
-    @Unique private int trackAlpha = 0;
-
-    @Inject(method = "render", at = @At("HEAD"))
-    private void mixinRender(DrawContext context, int width, TextRenderer textRenderer, int alpha, CallbackInfo ci) {
-        this.trackAlpha = alpha;
-    }
-
-    @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawCenteredTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Ljava/lang/String;III)V"), index = 4)
+    @ModifyArg(
+        method = "render",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/gui/DrawContext;drawCenteredTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Ljava/lang/String;III)V"
+        ),
+        index = 4
+    )
     private int modifyRenderArg(int color) {
-        return StardustConfig.greenSplashTextSetting.get() ? 0x54FB54 | this.trackAlpha : color;
+        if (!StardustConfig.greenSplashTextSetting.get()) return color;
+        int alpha = color & 0xFF000000;
+        return alpha | 0x0054FB54; // keep alpha, force RGB to green
     }
 }

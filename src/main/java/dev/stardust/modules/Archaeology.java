@@ -488,7 +488,7 @@ public class Archaeology extends Module {
 
                 if (breakBad.get()) {
                     FindItemResult result = InvUtils.findInHotbar(stack -> stack.getItem() instanceof ShovelItem);
-                    if (result.found() && result.slot() != mc.player.getInventory().selectedSlot && !(mc.player.getOffHandStack().getItem() instanceof ShovelItem)) {
+                    if (result.found() && result.slot() != ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot() && !(mc.player.getOffHandStack().getItem() instanceof ShovelItem)) {
                         InvUtils.swap(result.slot(), false);
                     }
                     if (isSafeToBreak(hitPos)) BlockUtils.breakBlock(hitPos, true);
@@ -502,7 +502,7 @@ public class Archaeology extends Module {
             FindItemResult result = InvUtils.findInHotbar(Items.BRUSH);
             if (result.found()) {
                 boolean offHand = mc.player.getOffHandStack().isOf(Items.BRUSH);
-                if (mc.player.getInventory().selectedSlot == result.slot() || offHand) {
+                if (((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot() == result.slot() || offHand) {
                     if (isSafeToBrush(hitPos)) {
                         if (!mc.player.isUsingItem() && mc.interactionManager != null) {
                             mc.interactionManager.interactItem(mc.player, offHand ? Hand.OFF_HAND : Hand.MAIN_HAND);

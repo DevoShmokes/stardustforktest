@@ -19,7 +19,10 @@ import net.minecraft.client.render.block.entity.BannerBlockEntityRenderer;
 public class BannerBlockEntityRendererMixin {
 
     // See NoRenderMixin.java
-    @Inject(method = "render(Lnet/minecraft/block/entity/BannerBlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;II)V", at = @At("HEAD"), cancellable = true)
+    @Inject(
+        method = "render(Lnet/minecraft/block/entity/BannerBlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;II)V",
+        at = @At("HEAD"), cancellable = true, require = 0
+    )
     private void onRender(BannerBlockEntity bannerBlockEntity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay, CallbackInfo ci) {
         if (bannerBlockEntity.getWorld() != null) {
             Modules mods = Modules.get();

@@ -223,12 +223,12 @@ public class WaxAura extends Module {
         Vec3d hitVec = Vec3d.ofCenter(pos);
         BlockHitResult hit = new BlockHitResult(hitVec, mc.player.getHorizontalFacing().getOpposite(), pos, false);
 
-        ItemStack current = mc.player.getInventory().getMainHandStack();
+        ItemStack current = mc.player.getMainHandStack();
         if (current.getItem() != Items.HONEYCOMB) {
             int end;
             if (hotbarOnly.get()) {
                 end = 9;
-            } else end = mc.player.getInventory().main.size();
+            } else end = ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size();
 
             for (int n = 0; n < end; n++) {
                 ItemStack stack = mc.player.getInventory().getStack(n);
@@ -236,7 +236,7 @@ public class WaxAura extends Module {
                     combSlot = n;
                     timer = Math.max(0, tickRate.get() - 5);
                     if (n < 9) InvUtils.swap(n, true);
-                    else InvUtils.move().from(n).to(mc.player.getInventory().selectedSlot);
+                    else InvUtils.move().from(n).to(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
                     return;
                 }
             }
@@ -299,7 +299,7 @@ public class WaxAura extends Module {
                     if (signsToWax.isEmpty()) {
                         if (swapBack.get() && combSlot != -1) {
                             if (combSlot < 9) InvUtils.swapBack();
-                            else InvUtils.move().from(mc.player.getInventory().selectedSlot).to(combSlot);
+                            else InvUtils.move().from(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot()).to(combSlot);
                             combSlot = -1;
                         }
                         return;

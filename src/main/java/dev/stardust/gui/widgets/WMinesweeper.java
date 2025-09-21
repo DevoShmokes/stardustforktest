@@ -153,14 +153,14 @@ public class WMinesweeper extends WWidget {
                 if (module.gameSounds.get()) {
                     mc.getSoundManager().play(
                         PositionedSoundInstance.master(
-                            SoundEvents.ENTITY_VILLAGER_NO,
+                            dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_VILLAGER_NO),
                             ThreadLocalRandom.current().nextFloat(0.77f, 1.1337f),
                             module.soundVolume.get().floatValue()
                         )
                     );
                     mc.getSoundManager().play(
                         PositionedSoundInstance.master(
-                            SoundEvents.ENTITY_GENERIC_EXPLODE.value(),
+                            dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_GENERIC_EXPLODE),
                             ThreadLocalRandom.current().nextFloat(0.77f, 1.1337f),
                             module.soundVolume.get().floatValue()
                         )
@@ -183,14 +183,14 @@ public class WMinesweeper extends WWidget {
                 if (module.gameSounds.get()) {
                     mc.getSoundManager().play(
                         PositionedSoundInstance.master(
-                            SoundEvents.ENTITY_VILLAGER_YES,
+                            dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_VILLAGER_YES),
                             ThreadLocalRandom.current().nextFloat(0.77f, 1.1337f),
                             module.soundVolume.get().floatValue()
                         )
                     );
                     mc.getSoundManager().play(
                         PositionedSoundInstance.master(
-                            SoundEvents.ENTITY_PLAYER_LEVELUP,
+                            dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_PLAYER_LEVELUP),
                             ThreadLocalRandom.current().nextFloat(0.77f, 1.1337f),
                             module.soundVolume.get().floatValue()
                         )
@@ -204,7 +204,7 @@ public class WMinesweeper extends WWidget {
         } else if (module.gameSounds.get()) {
             mc.getSoundManager().play(
                 PositionedSoundInstance.master(
-                    SoundEvents.BLOCK_AMETHYST_BLOCK_STEP,
+                    dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_AMETHYST_BLOCK_STEP),
                     ThreadLocalRandom.current().nextFloat(0.666f, 1.420f),
                     module.soundVolume.get().floatValue()
                 )
@@ -252,7 +252,7 @@ public class WMinesweeper extends WWidget {
             if (module.gameSounds.get()) {
                 mc.getSoundManager().play(
                     PositionedSoundInstance.master(
-                        SoundEvents.ENTITY_ITEM_FRAME_REMOVE_ITEM,
+                        dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_ITEM_FRAME_REMOVE_ITEM),
                         ThreadLocalRandom.current().nextFloat(0.666f, 1.333f), module.soundVolume.get().floatValue()
                     )
                 );
@@ -262,7 +262,7 @@ public class WMinesweeper extends WWidget {
             if (module.gameSounds.get()) {
                 mc.getSoundManager().play(
                     PositionedSoundInstance.master(
-                        SoundEvents.ENTITY_ITEM_FRAME_ADD_ITEM,
+                        dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_ITEM_FRAME_ADD_ITEM),
                         ThreadLocalRandom.current().nextFloat(0.666f, 1.333f), module.soundVolume.get().floatValue()
                     )
                 );

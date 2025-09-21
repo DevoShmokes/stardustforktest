@@ -56,7 +56,7 @@ public abstract class PeekScreenMixin extends ShulkerBoxScreen {
             if ((boolean) setting.get() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && focusedSlot != null && !focusedSlot.getStack().isEmpty()) {
                 FindItemResult empty;
                 if (InvUtils.testInMainHand(ItemStack::isEmpty)) {
-                    empty = new FindItemResult(mc.player.getInventory().selectedSlot, mc.player.getMainHandStack().getCount());
+                    empty = new FindItemResult(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot(), mc.player.getMainHandStack().getCount());
                 } else {
                     empty = InvUtils.find(ItemStack::isEmpty, 0, 8);
                 }

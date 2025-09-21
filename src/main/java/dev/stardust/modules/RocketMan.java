@@ -554,11 +554,11 @@ public class RocketMan extends Module {
             InvUtils.swapBack();
         }else {
             int movedSlot = -1;
-            for (int n = 9; n < mc.player.getInventory().main.size(); n++) {
+            for (int n = 9; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
                 Item item = mc.player.getInventory().getStack(n).getItem();
 
                 if (item == Items.FIREWORK_ROCKET) {
-                    InvUtils.move().from(n).to(mc.player.getInventory().selectedSlot);
+                    InvUtils.move().from(n).to(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
                     movedSlot = n;
                     foundRocket = true;
                     break;
@@ -571,7 +571,7 @@ public class RocketMan extends Module {
                 mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
                 //noinspection ConstantConditions
                 if (movedSlot != -1) {
-                    InvUtils.move().from(mc.player.getInventory().selectedSlot).to(movedSlot);
+                    InvUtils.move().from(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot()).to(movedSlot);
                 }
             }
         }
@@ -615,7 +615,7 @@ public class RocketMan extends Module {
 
     private boolean replaceElytra() {
         if (mc.player == null) return false;
-        for (int n = 0; n < mc.player.getInventory().main.size(); n++) {
+        for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
             ItemStack item = mc.player.getInventory().getStack(n);
             if (item.getItem() == Items.ELYTRA) {
                 int max = item.getMaxDamage();
@@ -647,7 +647,7 @@ public class RocketMan extends Module {
                     if (durabilityCheckTicks < 100) return;
                     if (percentDurability <= durabilityThreshold.get()) {
                         float vol = warnVolume.get() / 100f;
-                        mc.player.playSound(SoundEvents.ENTITY_ITEM_BREAK, vol, 1f);
+                        mc.player.playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_ITEM_BREAK), vol, 1f);
                         MsgUtil.updateModuleMsg("Elytra durability: §c" + percentDurability + "§7%", this.name, "elytraDurabilityWarning".hashCode());
                         durabilityCheckTicks = 0;
                     }
@@ -657,7 +657,7 @@ public class RocketMan extends Module {
             if (durabilityCheckTicks < 100) return;
             if (percentDurability <= durabilityThreshold.get()) {
                 float vol = warnVolume.get() / 100f;
-                mc.player.playSound(SoundEvents.ENTITY_ITEM_BREAK, vol, 1f);
+                mc.player.playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_ITEM_BREAK), vol, 1f);
                 MsgUtil.updateModuleMsg("Elytra durability: §c" + percentDurability + "§7%", this.name, "elytraDurabilityWarning".hashCode());
                 durabilityCheckTicks = 0;
             }
@@ -669,7 +669,7 @@ public class RocketMan extends Module {
         if (!notifyOnLow.get() || rocketStockTicks < 100) return;
 
         int totalRockets = 0;
-        for (int n = 0; n < mc.player.getInventory().main.size(); n++) {
+        for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
             ItemStack stack = mc.player.getInventory().getStack(n);
             if (stack.getItem() == Items.FIREWORK_ROCKET) {
                 totalRockets += stack.getCount();
@@ -678,7 +678,7 @@ public class RocketMan extends Module {
 
         if (totalRockets < notifyAmount.get()) {
             float vol = notifyVolume.get() / 100f;
-            mc.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, vol, 1f);
+            mc.player.playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP), vol, 1f);
             MsgUtil.updateModuleMsg("Rockets remaining: §c" + totalRockets + "§7.", this.name, "rocketsRemainingWarning".hashCode());
             rocketStockTicks = 0;
         }
@@ -840,8 +840,8 @@ public class RocketMan extends Module {
         if (!isWearingElytra) {
             if (autoEquip.get()) {
                 boolean foundElytra = false;
-                for (int n = 0; n < mc.player.getInventory().main.size(); n++) {
-                    ItemStack stack = mc.player.getInventory().main.get(n);
+                for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
+                    ItemStack stack = ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.get(n);
 
                     if (stack.getItem() == Items.ELYTRA) {
                         if (autoReplace.get()) {
@@ -1129,7 +1129,7 @@ public class RocketMan extends Module {
         }
 
         if (!(event.packet instanceof PlaySoundS2CPacket packet)) return;
-        if (packet.getSound().value() == SoundEvents.ENTITY_FIREWORK_ROCKET_LAUNCH) {
+        if (packet.getSound().value() == dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_FIREWORK_ROCKET_LAUNCH)) {
             if (muteRockets.get()) event.cancel();
         }
     }

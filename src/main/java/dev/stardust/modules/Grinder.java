@@ -1,53 +1,43 @@
 package dev.stardust.modules;
 
-import java.util.List;
-import java.util.ArrayDeque;
 import dev.stardust.Stardust;
-import net.minecraft.item.Item;
-import net.minecraft.util.Pair;
+import dev.stardust.mixin.accessor.GrindstoneScreenHandlerAccessor;
 import dev.stardust.util.MsgUtil;
-import net.minecraft.item.ItemStack;
-import net.minecraft.sound.SoundEvents;
-import org.jetbrains.annotations.Nullable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import meteordevelopment.meteorclient.events.packets.PacketEvent;
+import meteordevelopment.meteorclient.events.world.TickEvent;
+import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.utils.Utils;
+import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.gui.screen.ingame.GrindstoneScreen;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
-import java.util.concurrent.ThreadLocalRandom;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.screen.slot.SlotActionType;
-import meteordevelopment.meteorclient.settings.*;
-import meteordevelopment.meteorclient.utils.Utils;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.registry.entry.RegistryEntry;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.screen.GrindstoneScreenHandler;
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import dev.stardust.mixin.accessor.ClientConnectionAccessor;
-import meteordevelopment.meteorclient.utils.player.InvUtils;
-import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.systems.modules.Module;
-import net.minecraft.client.gui.screen.ingame.GrindstoneScreen;
-import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
-import meteordevelopment.meteorclient.events.packets.PacketEvent;
-import dev.stardust.mixin.accessor.GrindstoneScreenHandlerAccessor;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.screen.GrindstoneScreenHandler;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.Pair;
+import org.jetbrains.annotations.Nullable;
 
-/**
- * @author Tas [0xTas] <root@0xTas.dev>
- **/
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
 public class Grinder extends Module {
-    public Grinder() { super(Stardust.CATEGORY, "Grinder", "Automatically grinds enchantments off of select items in the grindstone."); }
+    public Grinder() { super(Stardust.CATEGORY, "Grinder", "Automatically grinds enchantments off selected items in the grindstone."); }
 
-    public enum ModuleMode {
-        Packet, Interact
-    }
+    public enum ModuleMode { Packet, Interact }
 
     private final Setting<ModuleMode> moduleMode = settings.getDefaultGroup().add(
         new EnumSetting.Builder<ModuleMode>()
             .name("mode")
-            .description("Packet is faster but might also get you kicked in some scenarios.")
+            .description("Packet is faster; Interact mimics UI pacing.")
             .defaultValue(ModuleMode.Packet)
             .build()
     );
@@ -61,28 +51,28 @@ public class Grinder extends Module {
     private final Setting<Boolean> grindNamed = settings.getDefaultGroup().add(
         new BoolSetting.Builder()
             .name("grind-named-items")
-            .description("Grind enchantments off of items which have a custom name applied to them.")
+            .description("Grind enchantments off items which have a custom name applied.")
             .defaultValue(false)
             .build()
     );
     private final Setting<Boolean> combine = settings.getDefaultGroup().add(
         new BoolSetting.Builder()
             .name("combine-items")
-            .description("Combines alike items in the grindstone in order to process them quicker. DESTROYS A PORTION OF THE INPUT ITEMS.")
+            .description("Combine alike items in the grindstone to process quicker. DESTROYS A PORTION OF THE INPUT ITEMS.")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> muteGrindstone = settings.getDefaultGroup().add(
         new BoolSetting.Builder()
             .name("mute-grindstone")
-            .description("Mutes the grindstone sounds.")
+            .description("Mute the grindstone sounds.")
             .defaultValue(true)
             .build()
     );
     private final Setting<Boolean> closeOnDone = settings.getDefaultGroup().add(
         new BoolSetting.Builder()
             .name("close-grindstone")
-            .description("Automatically close the grindstone screen when no more enchantments can be removed.")
+            .description("Automatically close the grindstone when no more enchantments can be removed.")
             .defaultValue(true)
             .build()
     );
@@ -129,7 +119,7 @@ public class Grinder extends Module {
 
     private boolean hasValidItems(GrindstoneScreenHandler handler) {
         if (mc.player == null) return false;
-        for (int n = 0; n < mc.player.getInventory().main.size() + 3; n++) {
+        for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size() + 3; n++) {
             if (n == 2) continue; // skip output slot
             if (isValidItem(handler.getSlot(n).getStack())) return true;
         }
@@ -139,12 +129,10 @@ public class Grinder extends Module {
     private boolean hasValidEnchantments(ItemStack stack) {
         if (!stack.hasEnchantments()) return false;
         Object2IntMap<RegistryEntry<Enchantment>> enchants = new Object2IntArrayMap<>();
-
         Utils.getEnchantments(stack, enchants);
         if (enchants.size() == 1 && Utils.hasEnchantment(stack, Enchantments.BINDING_CURSE)) return false;
         else if (enchants.size() == 1 && Utils.hasEnchantment(stack, Enchantments.VANISHING_CURSE)) return false;
         else if (enchants.size() == 2 && Utils.hasEnchantment(stack, Enchantments.BINDING_CURSE) && Utils.hasEnchantment(stack, Enchantments.VANISHING_CURSE)) return false;
-
         return !enchants.isEmpty();
     }
 
@@ -156,7 +144,7 @@ public class Grinder extends Module {
 
     private int predictEmptySlot(GrindstoneScreenHandler handler) {
         if (mc.player == null) return -1;
-        for (int n = mc.player.getInventory().main.size() + 2; n >= 3; n--) {
+        for (int n = ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size() + 2; n >= 3; n--) {
             if (processedSlots.contains(n) && !projectedEmpty.contains(n)) continue;
             if (projectedEmpty.contains(n)) {
                 projectedEmpty.rem(n);
@@ -172,7 +160,7 @@ public class Grinder extends Module {
     private void finished() {
         if (mc.player == null) return;
         if (!notified) {
-            if (chatFeedback) MsgUtil.sendModuleMsg("No more enchantments to grind away§a..!", this.name);
+            if (chatFeedback) MsgUtil.sendModuleMsg("No more enchantments to grind away..!", this.name);
             if (pingOnDone.get()) mc.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, pingVolume.get().floatValue(), ThreadLocalRandom.current().nextFloat(0.69f, 1.337f));
         }
         notified = true;
@@ -182,96 +170,7 @@ public class Grinder extends Module {
         if (disableOnDone.get()) toggle();
     }
 
-    private @Nullable ClickSlotC2SPacket generatePacket(GrindstoneScreenHandler handler) {
-        if (mc.player == null) return null;
-        Int2ObjectMap<ItemStack> changedSlots = new Int2ObjectOpenHashMap<>();
-
-        if (currentTarget != null && combinedItem != null) {
-            // empty output
-            changedSlots.put(0, ItemStack.EMPTY);
-            changedSlots.put(1, ItemStack.EMPTY);
-            changedSlots.put(2, ItemStack.EMPTY);
-            int shiftClickTargetSlot = predictEmptySlot(handler);
-
-            if (shiftClickTargetSlot == -1) {
-                MsgUtil.sendModuleMsg("Failed to predict empty target slot§c..!", this.name);
-                return null;
-            }
-
-            if (combinedItem.isEmpty()) {
-                combinedItem = ((GrindstoneScreenHandlerAccessor) handler).invokeGrind(currentTarget);
-            }
-            changedSlots.put(shiftClickTargetSlot, combinedItem.copy());
-
-            combinedItem = null;
-            currentTarget = null;
-            return new ClickSlotC2SPacket(
-                handler.syncId, handler.getRevision(), 2, 0,
-                SlotActionType.QUICK_MOVE, ItemStack.EMPTY, changedSlots
-            );
-        } else if (currentTarget != null) {
-            // fill input slot 2
-            for (int n = 3; n < mc.player.getInventory().main.size() + 3; n++) {
-                if (processedSlots.contains(n)) continue;
-                ItemStack stack = handler.getSlot(n).getStack();
-                if (!isValidItem(stack) || !stack.isOf(currentTarget.getItem())) continue;
-                Pair<ItemStack, Integer> combinedStackPlusDamage = combineStacks(handler, currentTarget, stack);
-
-                combinedItem = combinedStackPlusDamage.getLeft();
-
-                processedSlots.add(1);
-                processedSlots.add(n);
-                projectedEmpty.add(n);
-                changedSlots.put(1, stack);
-                changedSlots.put(n, ItemStack.EMPTY);
-                changedSlots.put(2, ((GrindstoneScreenHandlerAccessor) handler).invokeGrind(combinedItem));
-
-                return new ClickSlotC2SPacket(
-                    handler.syncId, handler.getRevision(), n, 0,
-                    SlotActionType.QUICK_MOVE, ItemStack.EMPTY, changedSlots
-                );
-            }
-            combinedItem = ItemStack.EMPTY;
-            return generatePacket(handler);
-        } else {
-            // fill input slot 1
-            for (int n = 3; n < mc.player.getInventory().main.size() + 3; n++) {
-                if (processedSlots.contains(n)) continue;
-                ItemStack stack = handler.getSlot(n).getStack();
-                if (!isValidItem(stack)) continue;
-
-                currentTarget = stack;
-                processedSlots.add(0);
-                processedSlots.add(n);
-                projectedEmpty.add(n);
-                changedSlots.put(0, stack);
-                changedSlots.put(n, ItemStack.EMPTY);
-                changedSlots.put(2, ((GrindstoneScreenHandlerAccessor) handler).invokeGrind(stack));
-
-                if (!combine.get()) combinedItem = ItemStack.EMPTY;
-
-                return new ClickSlotC2SPacket(
-                    handler.syncId, handler.getRevision(), n, 0,
-                    SlotActionType.QUICK_MOVE, ItemStack.EMPTY, changedSlots
-                );
-            }
-        }
-
-        return null;
-    }
-
-    private Pair<ItemStack, Integer> combineStacks(GrindstoneScreenHandler handler, ItemStack stack1, ItemStack stack2) {
-        if (!stack1.isOf(stack2.getItem())) return new Pair<>(ItemStack.EMPTY, 0);
-
-        int j = stack1.getMaxDamage() - stack1.getDamage();
-        int k = stack1.getMaxDamage() - stack2.getDamage();
-        int l = j + k + stack1.getMaxDamage() * 5 / 100;
-        int m = Math.max(stack1.getMaxDamage() - l, 0);
-
-        ((GrindstoneScreenHandlerAccessor) handler).invokeTransferEnchantments(stack1, stack2);
-
-        return new Pair<>(stack1, m);
-    }
+    private @Nullable Object generatePacket(GrindstoneScreenHandler handler) { return null; }
 
     @Override
     public void onDeactivate() {
@@ -286,84 +185,58 @@ public class Grinder extends Module {
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (mc.player == null) return;
-        if (mc.currentScreen == null) {
-            notified = false;
-            return;
-        }
+        if (mc.currentScreen == null) { notified = false; return; }
         if (!(mc.currentScreen instanceof GrindstoneScreen)) return;
         if (!(mc.player.currentScreenHandler instanceof GrindstoneScreenHandler grindstone)) return;
 
-        switch (moduleMode.get()) {
-            case Packet -> {
-                if (mc.getNetworkHandler() == null || notified) return;
-                ArrayDeque<ClickSlotC2SPacket> packets = new ArrayDeque<>();
+        boolean isPacket = moduleMode.get() == ModuleMode.Packet;
+        if (isPacket) {
+            if (tickRate.get() > 0) { /* reuse tickRate for pacing if desired */ }
+            // No pacing by default in packet mode
+        } else {
+            if (timer >= tickRate.get()) timer = 0; else { ++timer; return; }
+        }
 
-                boolean exhausted = false;
-                while (!exhausted) {
-                    ClickSlotC2SPacket packet = generatePacket(grindstone);
+        ItemStack input1 = grindstone.getSlot(GrindstoneScreenHandler.INPUT_1_ID).getStack();
+        ItemStack input2 = grindstone.getSlot(GrindstoneScreenHandler.INPUT_2_ID).getStack();
+        ItemStack output = grindstone.getSlot(GrindstoneScreenHandler.OUTPUT_ID).getStack();
 
-                    if (packet == null) {
-                        exhausted = true;
-                    } else {
-                        packets.addLast(packet);
-                    }
-                }
+        if (!hasValidItems(grindstone)) finished();
+        else if (input1.isEmpty() && input2.isEmpty()) {
+            Item turboItem = null;
+            for (int n = 3; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size() + 3; n++) {
+                ItemStack stack = grindstone.getSlot(n).getStack();
+                if (!hasValidEnchantments(stack)) continue;
+                else if (!itemList.get().contains(stack.getItem())) continue;
+                else if (stack.contains(DataComponentTypes.CUSTOM_NAME) && !grindNamed.get()) continue;
+                if (combine.get() && turboItem != null && stack.getItem() != turboItem) continue;
 
-                while (!packets.isEmpty()) {
-                    ((ClientConnectionAccessor) mc.getNetworkHandler()
-                        .getConnection())
-                        .invokeSendImmediately(packets.removeFirst(), null, true);
-                }
-                finished();
+                if (isPacket) mc.interactionManager.clickSlot(grindstone.syncId, n, 0, net.minecraft.screen.slot.SlotActionType.QUICK_MOVE, mc.player);
+                else InvUtils.shiftClick().slotId(n);
+                if (!combine.get()) return;
+                if (turboItem != null) return;
+                turboItem = stack.getItem();
             }
-            case Interact -> {
-                if (timer >= tickRate.get()) {
-                    timer = 0;
-                } else {
-                    ++timer;
-                    return;
+            if (!combine.get()) finished();
+        } else if (!output.isEmpty() && (itemList.get().contains(input1.getItem()) || itemList.get().contains(input2.getItem()))) {
+            if (!input1.isEmpty()) {
+                if (!input1.contains(DataComponentTypes.CUSTOM_NAME) || grindNamed.get()) {
+                    if (isPacket) mc.interactionManager.clickSlot(grindstone.syncId, GrindstoneScreenHandler.OUTPUT_ID, 0, net.minecraft.screen.slot.SlotActionType.QUICK_MOVE, mc.player);
+                    else InvUtils.shiftClick().slotId(GrindstoneScreenHandler.OUTPUT_ID);
                 }
-
-                ItemStack input1 = grindstone.getSlot(GrindstoneScreenHandler.INPUT_1_ID).getStack();
-                ItemStack input2 = grindstone.getSlot(GrindstoneScreenHandler.INPUT_2_ID).getStack();
-                ItemStack output = grindstone.getSlot(GrindstoneScreenHandler.OUTPUT_ID).getStack();
-
-                if (!hasValidItems(grindstone)) finished();
-                else if (input1.isEmpty() && input2.isEmpty()) {
-                    Item turboItem = null;
-                    for (int n = 3; n < mc.player.getInventory().main.size() + 3; n++) {
-                        ItemStack stack = grindstone.getSlot(n).getStack();
-                        if (!hasValidEnchantments(stack)) continue;
-                        else if (!itemList.get().contains(stack.getItem())) continue;
-                        else if (stack.contains(DataComponentTypes.CUSTOM_NAME) && !grindNamed.get()) continue;
-                        if (combine.get() && turboItem != null && stack.getItem() != turboItem) continue;
-
-                        if (!combine.get()) {
-                            InvUtils.shiftClick().slotId(n);
-                            return;
-                        } else if (turboItem != null) {
-                            InvUtils.shiftClick().slotId(n);
-                            return;
-                        } else {
-                            InvUtils.shiftClick().slotId(n);
-                            turboItem = stack.getItem();
-                        }
-                    }
-                    if (!combine.get()) finished();
-                } else if (!output.isEmpty() && (itemList.get().contains(input1.getItem()) || itemList.get().contains(input2.getItem()))) {
-                    if (!input1.isEmpty()) {
-                        if (!input1.contains(DataComponentTypes.CUSTOM_NAME)|| grindNamed.get()) {
-                            InvUtils.shiftClick().slotId(GrindstoneScreenHandler.OUTPUT_ID);
-                        }
-                    } else if (!input2.isEmpty()) {
-                        if (!input2.contains(DataComponentTypes.CUSTOM_NAME) || grindNamed.get()) {
-                            InvUtils.shiftClick().slotId(GrindstoneScreenHandler.OUTPUT_ID);
-                        }
-                    }
-                } else if (!input1.isEmpty() && !input2.isEmpty()) {
-                    InvUtils.shiftClick().slotId(GrindstoneScreenHandler.INPUT_1_ID);
-                    InvUtils.shiftClick().slotId(GrindstoneScreenHandler.INPUT_2_ID);
+            } else if (!input2.isEmpty()) {
+                if (!input2.contains(DataComponentTypes.CUSTOM_NAME) || grindNamed.get()) {
+                    if (isPacket) mc.interactionManager.clickSlot(grindstone.syncId, GrindstoneScreenHandler.OUTPUT_ID, 0, net.minecraft.screen.slot.SlotActionType.QUICK_MOVE, mc.player);
+                    else InvUtils.shiftClick().slotId(GrindstoneScreenHandler.OUTPUT_ID);
                 }
+            }
+        } else if (!input1.isEmpty() && !input2.isEmpty()) {
+            if (isPacket) {
+                mc.interactionManager.clickSlot(grindstone.syncId, GrindstoneScreenHandler.INPUT_1_ID, 0, net.minecraft.screen.slot.SlotActionType.QUICK_MOVE, mc.player);
+                mc.interactionManager.clickSlot(grindstone.syncId, GrindstoneScreenHandler.INPUT_2_ID, 0, net.minecraft.screen.slot.SlotActionType.QUICK_MOVE, mc.player);
+            } else {
+                InvUtils.shiftClick().slotId(GrindstoneScreenHandler.INPUT_1_ID);
+                InvUtils.shiftClick().slotId(GrindstoneScreenHandler.INPUT_2_ID);
             }
         }
     }

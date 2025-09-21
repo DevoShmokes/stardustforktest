@@ -435,7 +435,7 @@ public class Meteorite extends Entity {
 
                 if (player.iFrames <= 0) {
                     widget.playSound(
-                        SoundEvents.ENTITY_PLAYER_SMALL_FALL,
+                        dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_PLAYER_SMALL_FALL),
                         ThreadLocalRandom.current().nextFloat(0.666f, 1.1337f)
                     );
                 }
@@ -463,10 +463,10 @@ public class Meteorite extends Entity {
 
             if (player.iFrames <= 0) {
                 player.damageHull(damage);
-                widget.playSound(SoundEvents.ENTITY_PLAYER_HURT, 0.9f);
+                widget.playSound(dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_PLAYER_HURT), 0.9f);
             } else {
                 widget.playSound(
-                    SoundEvents.ENTITY_PLAYER_BIG_FALL, 0.7f,
+                    dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_PLAYER_BIG_FALL), 0.7f,
                     widget.module.soundVolume.get().floatValue() * 0.66f
                 );
             }
@@ -516,13 +516,13 @@ public class Meteorite extends Entity {
 
         this.hp -= damageAmount;
         widget.playSound(
-            widget.rng.nextBoolean() ? SoundEvents.BLOCK_ANCIENT_DEBRIS_BREAK : SoundEvents.BLOCK_DEEPSLATE_BREAK,
+            widget.rng.nextBoolean() ? dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_ANCIENT_DEBRIS_BREAK) : dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_DEEPSLATE_BREAK),
             widget.rng.nextFloat(1.137f, 2.1f),
             widget.module.soundVolume.get().floatValue() * 0.42f
         );
         if (widget.rng.nextDouble() <= 0.1337) {
             widget.playSound(
-                SoundEvents.BLOCK_ANVIL_LAND,
+                dev.stardust.util.SoundUtil.se(SoundEvents.BLOCK_ANVIL_LAND),
                 widget.rng.nextFloat(3.333f, 4.420f),
                 widget.module.soundVolume.get().floatValue() * 0.1337f
             );
@@ -539,7 +539,7 @@ public class Meteorite extends Entity {
             }
             stage = newStage;
             widget.playSound(
-                SoundEvents.ENTITY_GENERIC_EXPLODE.value(),
+                dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_GENERIC_EXPLODE),
                 widget.rng.nextFloat(0.8f, 1.1f),
                 widget.module.soundVolume.get().floatValue() * 0.420f
             );
@@ -583,7 +583,7 @@ public class Meteorite extends Entity {
 
     private void explode(WMeteorites widget) {
         widget.playSound(
-            SoundEvents.ENTITY_GENERIC_EXPLODE.value(),
+            dev.stardust.util.SoundUtil.se(SoundEvents.ENTITY_GENERIC_EXPLODE),
             widget.rng.nextFloat(0.8f, 1.15f)
         );
         int finalCount = widget.rng.nextInt(BOSS_MIN_FINAL_FRAGMENTS, BOSS_MAX_FINAL_FRAGMENTS + 1) * (widget.wave / 10);

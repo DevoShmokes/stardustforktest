@@ -20,7 +20,6 @@ import meteordevelopment.meteorclient.utils.Utils;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ProfileComponent;
 import meteordevelopment.meteorclient.utils.world.Dimension;
-import dev.stardust.mixin.accessor.ClientConnectionAccessor;
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
@@ -278,15 +277,12 @@ public class StardustUtil {
             try {
                 if (file.createNewFile()) {
                     if (mc.player != null) {
-                        MsgUtil.sendMsg("Created " + file.getName() + " in your meteor-client folder.");
-                        Style style = Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, file.getAbsolutePath()));
-
-                        MsgUtil.sendMsg("Click §2§lhere §r§7to open the file.", style);
+                        MsgUtil.sendMsg("Created " + file.getName() + " in your meteor-client folder.");                        MsgUtil.sendMsg("File: " + file.getAbsolutePath());
                     }
                     return true;
                 }
             }catch (Exception err) {
-                LogUtil.error("Error creating " + file.getAbsolutePath() + "! - Why:\n" + err, "StardustUtil#checkOrCreateFile");
+                LogUtil.error("Error creating " + file.getAbsolutePath() + "! - Why:" + err, "StardustUtil#checkOrCreateFile");
             }
         } else return true;
 
@@ -306,7 +302,7 @@ public class StardustUtil {
             }
         } catch (Exception err) {
             MsgUtil.sendMsg("Failed to open " + file.getName() + "§c..!");
-            LogUtil.error("Failed to open " + file.getAbsolutePath() + "! - Why:\n" + err, "StardustUtil#openFile");
+            LogUtil.error("Failed to open " + file.getAbsolutePath() + "! - Why:" + err, "StardustUtil#openFile");
         }
     }
 
@@ -328,13 +324,7 @@ public class StardustUtil {
         Packet<?> illegalPacket = null;
         switch (illegalDisconnectMethod) {
             case Slot -> illegalPacket = new UpdateSelectedSlotC2SPacket(-69);
-            case Chat -> illegalPacket = new ChatMessageC2SPacket(
-                "§",
-                Instant.now(),
-                NetworkEncryptionUtils.SecureRandomUtil.nextLong(),
-                null,
-                ((ClientPlayNetworkHandlerAccessor) mc.getNetworkHandler()).getLastSeenMessagesCollector().collect().update()
-            );
+            case Chat -> illegalPacket = null;
             case Interact -> illegalPacket = PlayerInteractEntityC2SPacket.interact(mc.player, false, Hand.MAIN_HAND);
             case Movement -> illegalPacket = new PlayerMoveC2SPacket.PositionAndOnGround(Double.NaN, 69, Double.NaN, false, false);
             case SequenceBreak -> illegalPacket = new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, -420, 13.37F, 69.69F);
@@ -346,9 +336,7 @@ public class StardustUtil {
                 mc.options.getSyncedOptions().particleStatus()
             ));
         }
-        if (illegalPacket != null) ((ClientConnectionAccessor) mc.getNetworkHandler().getConnection()).invokeSendImmediately(
-            illegalPacket, null, true
-        );
+        if (illegalPacket != null) mc.getNetworkHandler().getConnection().send(illegalPacket);
     }
 
     public static void disableAutoReconnect() {

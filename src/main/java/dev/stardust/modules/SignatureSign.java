@@ -32,7 +32,6 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.utils.Utils;
 import net.minecraft.block.entity.SignBlockEntity;
 import meteordevelopment.meteorclient.MeteorClient;
-import dev.stardust.mixin.accessor.ClientConnectionAccessor;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -645,7 +644,7 @@ public class SignatureSign extends Module {
                 if (file.createNewFile()) {
                     if (mc.player != null) {
                         MsgUtil.sendModuleMsg("Created autosign.txt in your meteor-client folder§a..!", this.name);
-                        Style style = Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, meteorFolder.toFile().getAbsolutePath()));
+                        Style style = Style.EMPTY; // removed file-open click event for 1.21.8
 
                         MsgUtil.sendModuleMsg("Click §2§lhere §r§7to open the folder.", style, this.name);
                     }
@@ -679,7 +678,7 @@ public class SignatureSign extends Module {
                 if (file.createNewFile()) {
                     if (mc.player != null) {
                         MsgUtil.sendModuleMsg("Created storysign.txt in your meteor-client folder§a..!", this.name);
-                        Style style = Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, meteorFolder.toFile().getAbsolutePath()));
+                        Style style = Style.EMPTY; // removed file-open click event for 1.21.8
 
                         MsgUtil.sendModuleMsg("Click §2§lhere §r§7to open the folder.", style, this.name);
                     }
@@ -897,14 +896,14 @@ public class SignatureSign extends Module {
         Vec3d hitVec = Vec3d.ofCenter(pos);
         BlockHitResult hit = new BlockHitResult(hitVec, mc.player.getHorizontalFacing().getOpposite(), pos, false);
 
-        ItemStack current = mc.player.getInventory().getMainHandStack();
+        ItemStack current = mc.player.getMainHandStack();
         if (current.getItem() != dye) {
-            for (int n = 0; n < mc.player.getInventory().main.size(); n++) {
+            for (int n = 0; n < ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getMain() /*private*/.size(); n++) {
                 ItemStack stack = mc.player.getInventory().getStack(n);
                 if (stack.getItem() == dye) {
                     if (current.getItem() instanceof SignItem && current.getCount() > 1) dyeSlot = n;
                     if (n < 9) InvUtils.swap(n, true);
-                    else InvUtils.move().from(n).to(mc.player.getInventory().selectedSlot);
+                    else InvUtils.move().from(n).to(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot());
 
                     timer = 3;
                     return;
@@ -969,7 +968,7 @@ public class SignatureSign extends Module {
             ++packetTimer;
             if (packetTimer >= packetDelay.get()) {
                 packetTimer = 0;
-                ((ClientConnectionAccessor) mc.getNetworkHandler().getConnection()).invokeSendImmediately(
+                mc.getNetworkHandler().getConnection().send(
                     packetQueue.removeFirst(), null, true
                 );
             }
@@ -983,7 +982,7 @@ public class SignatureSign extends Module {
         if (timer == -1) {
             if (dyeSlot != -1) {
                 if (dyeSlot < 9) InvUtils.swapBack();
-                else InvUtils.move().from(mc.player.getInventory().selectedSlot).to(dyeSlot);
+                else InvUtils.move().from(((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot()).to(dyeSlot);
                 dyeSlot = -1;
                 timer = 3;
             }
