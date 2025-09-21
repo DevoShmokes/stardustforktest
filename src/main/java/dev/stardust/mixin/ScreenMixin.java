@@ -46,7 +46,40 @@ public abstract class ScreenMixin extends AbstractParentElement implements Drawa
     // See ChatSigns.java
     @Inject(method = "handleTextClick", at = @At("HEAD"), cancellable = true)
     private void handleClickESP(@Nullable Style style, CallbackInfoReturnable<Boolean> cir) {
-        // Temporarily disabled until 1.21.8 text event API is remapped here
-        return;
+        if (style == null) return;
+        var click = style.getClickEvent();
+        if (click == null) return;
+
+        String s = click.toString();
+        String marker = "stardust://chatsigns";
+        if (s == null || !s.contains(marker)) return;
+        String value;
+        try {
+            int i = s.indexOf(marker);
+            int end = s.indexOf(')', i);
+            if (end < 0) end = s.length();
+            value = s.substring(i, end);
+        } catch (Exception e) { return; }
+
+        try {
+            java.net.URI uri = java.net.URI.create(value);
+            String q = uri.getQuery();
+            java.util.Map<String,String> qp = java.util.Arrays.stream(q.split("&"))
+                .map(p -> p.split("=",2))
+                .collect(java.util.stream.Collectors.toMap(a -> a[0], a -> a.length>1?a[1]:""));
+            int x = Integer.parseInt(qp.getOrDefault("x","0"));
+            int y = Integer.parseInt(qp.getOrDefault("y","0"));
+            int z = Integer.parseInt(qp.getOrDefault("z","0"));
+            long t = Long.parseLong(qp.getOrDefault("t", String.valueOf(System.currentTimeMillis())));
+
+            var mods = Modules.get();
+            if (mods != null) {
+                var cs = mods.get(ChatSigns.class);
+                boolean nowOn = cs.toggleClickESP(new BlockPos(x,y,z), t);
+                if (cs.chatFeedback) LogUtil.info((nowOn ? "ClickESP ON at " : "ClickESP OFF at ") + x + "," + y + "," + z, "chatsigns");
+            }
+            cir.setReturnValue(true);
+            cir.cancel();
+        } catch (Exception ignored) { }
     }
 }

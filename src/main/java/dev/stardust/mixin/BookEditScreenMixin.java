@@ -23,10 +23,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  **/
 @Mixin(BookEditScreen.class)
 public abstract class BookEditScreenMixin extends Screen {
-    @Shadow
-    private boolean dirty;
-    @Shadow
-    private boolean signing;
 
     // See BookTools.java
     protected BookEditScreenMixin(Text title) { super(title); }
@@ -46,7 +42,7 @@ public abstract class BookEditScreenMixin extends Screen {
     private void onClickColorButton(ButtonWidget btn) {
         String color = btn.getMessage().getString().substring(0, 2);
 
-        if (this.signing) {
+        if (stardust$isSigning()) {
             BookEditScreenHacks.insertIntoTitle((BookEditScreen) (Object) this, color);
         } else {
             this.didFormatPage = true;
@@ -60,7 +56,7 @@ public abstract class BookEditScreenMixin extends Screen {
 
         if (rainbowMode) {
             activeFormatting = format;
-        }else if (this.signing) {
+        } else if (stardust$isSigning()) {
             BookEditScreenHacks.insertIntoTitle((BookEditScreen) (Object) this, format);
         } else {
             this.didFormatPage = true;
@@ -91,7 +87,7 @@ public abstract class BookEditScreenMixin extends Screen {
         return lastCC.labels[ThreadLocalRandom.current().nextInt(lastCC.labels.length)];
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
+    @Inject(method = "init", at = @At("TAIL"), require = 0)
     private void mixinInit(CallbackInfo ci) {
         Modules modules = Modules.get();
         if (modules == null) return;
@@ -164,9 +160,9 @@ public abstract class BookEditScreenMixin extends Screen {
         );
     }
 
-    @Inject(method = "charTyped", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SelectionManager;insert(Ljava/lang/String;)V"))
+    @Inject(method = "charTyped", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SelectionManager;insert(Ljava/lang/String;)V"), require = 0)
     private void mixinCharTyped(char chr, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        if (!rainbowMode || signing) return;
+        if (!rainbowMode || stardust$isSigning()) return;
         didFormatPage = true;
         if (activeFormatting.equals("§r")) {
             activeFormatting = "";
@@ -176,19 +172,19 @@ public abstract class BookEditScreenMixin extends Screen {
         }
     }
 
-    @Inject(method = "finalizeBook", at = @At("HEAD"))
+    @Inject(method = "finalizeBook", at = @At("HEAD"), require = 0)
     private void mixinFinalizeBook(CallbackInfo ci) {
-        if (this.dirty && this.didFormatPage) {
+        if (this.didFormatPage) {
             BookEditScreenHacks.insertIntoCurrentPage((BookEditScreen) (Object) this, "§r");
         }
     }
 
-    @Inject(method = "changePage", at = @At("HEAD"))
+    @Inject(method = "changePage", at = @At("HEAD"), require = 0)
     private void mixinChangePage(CallbackInfo ci) {
         this.didFormatPage = false;
     }
 
-    @Inject(method = "updateButtons", at = @At("TAIL"))
+    @Inject(method = "updateButtons", at = @At("TAIL"), require = 0)
     private void mixinUpdateButtons(CallbackInfo ci) {
         Modules modules = Modules.get();
         if (modules == null) return;
@@ -196,11 +192,22 @@ public abstract class BookEditScreenMixin extends Screen {
         if (bookTools.skipFormatting()) return;
 
         for (ButtonWidget btn : this.buttons) {
-            btn.visible = !signing || bookTools.shouldFormatTitles();
+            btn.visible = !stardust$isSigning() || bookTools.shouldFormatTitles();
         }
 
-        if (this.signing && !bookTools.autoTitles.get().trim().isEmpty()) {
+        if (stardust$isSigning() && !bookTools.autoTitles.get().trim().isEmpty()) {
             BookEditScreenHacks.insertIntoTitle((BookEditScreen) (Object) this, bookTools.autoTitles.get());
         }
     }
+
+    @Unique
+    private boolean stardust$isSigning() {
+        try {
+            java.lang.reflect.Field f = BookEditScreen.class.getDeclaredField("signing");
+            f.setAccessible(true);
+            return f.getBoolean((BookEditScreen)(Object)this);
+        } catch (Throwable ignored) { }
+        return false;
+    }
 }
+

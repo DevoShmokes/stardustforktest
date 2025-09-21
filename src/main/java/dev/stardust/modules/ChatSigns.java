@@ -639,6 +639,15 @@ public class ChatSigns extends Module {
             ++fullClusterAmount;
             lastFullClusterPos = sign.getPos();
             Style clickESP = Style.EMPTY;
+            // Restore ClickESP: embed an OpenUrl click event with a stardust marker
+            try {
+                String marker = String.format(
+                    "stardust://chatsigns?x=%d&y=%d&z=%d&t=%d",
+                    sign.getPos().getX(), sign.getPos().getY(), sign.getPos().getZ(), System.currentTimeMillis()
+                );
+                net.minecraft.text.ClickEvent clickEvent = createOpenUrlClickEvent(marker);
+                if (clickEvent != null) clickESP = clickESP.withClickEvent(clickEvent);
+            } catch (Exception ignored) { }
             if (signMessages.containsKey(textOnSign) && !sign.getPos().equals(lastFocusedSign)) {
                 int timesSeen = signMessages.get(textOnSign) + 1;
                 signMessages.put(textOnSign, timesSeen);
@@ -651,6 +660,25 @@ public class ChatSigns extends Module {
                 jobQueue.add(new ChatSignsJob(Text.literal(msg).setStyle(clickESP), textOnSign.hashCode()));
             } else ((IChatHud) mc.inGameHud.getChatHud()).meteor$add(Text.literal(msg).setStyle(clickESP), textOnSign.hashCode());
         });
+    }
+
+    // 1.21.8 ClickEvent has typed variants; construct an OpenUrl via reflection for compatibility
+    private net.minecraft.text.ClickEvent createOpenUrlClickEvent(String url) {
+        try {
+            Class<?> ce = Class.forName("net.minecraft.text.ClickEvent$OpenUrl");
+            try {
+                // Prefer URI constructor if present
+                java.lang.reflect.Constructor<?> c = ce.getDeclaredConstructor(java.net.URI.class);
+                c.setAccessible(true);
+                return (net.minecraft.text.ClickEvent) c.newInstance(java.net.URI.create(url));
+            } catch (NoSuchMethodException ignored) {
+                // Fallback to String
+                java.lang.reflect.Constructor<?> c = ce.getDeclaredConstructor(String.class);
+                c.setAccessible(true);
+                return (net.minecraft.text.ClickEvent) c.newInstance(url);
+            }
+        } catch (Throwable ignored) { }
+        return null;
     }
 
     private void initBlacklistText() {

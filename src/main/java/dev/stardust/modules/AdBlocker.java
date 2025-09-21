@@ -99,10 +99,42 @@ public class AdBlocker extends Module {
     }
 
     private void extractNamesFromDeathMessage(Text msg, List<String> names) {
-        // Hover event text parsing removed for 1.21.8 API changes.
+        // Heuristic extraction for 1.21.8: scan text content for common death patterns
+        try {
+            String raw = msg.getString();
+            if (raw != null && !raw.isBlank()) {
+                for (String n : findNamesIn(raw)) if (!names.contains(n)) names.add(n);
+            }
+        } catch (Exception ignored) {}
+        for (Text sibling : msg.getSiblings()) extractNamesFromDeathMessage(sibling, names);
+    }
 
-        for (Text sibling : msg.getSiblings()) {
-            extractNamesFromDeathMessage(sibling, names);
+    private List<String> findNamesIn(String s) {
+        List<String> out = new ArrayList<>();
+        String lower = s.toLowerCase();
+        String[] patterns = new String[]{
+            "slain by ", "shot by ", "blown up by ", "killed by ", "pricked to death by ", "burned by ", "fell from" // loose
+        };
+        for (String p : patterns) {
+            int i = lower.indexOf(p);
+            if (i >= 0) {
+                String tail = s.substring(i + p.length());
+                String token = tail.split("[ .,:;()\"']", 2)[0];
+                if (isLikelyName(token)) out.add(token);
+            }
         }
+        // Also capture bracketed chat names like <Name>
+        if (s.startsWith("<") && s.contains(">")) {
+            String name = s.substring(1, s.indexOf('>')).trim();
+            if (isLikelyName(name)) out.add(name);
+        }
+        return out;
+    }
+
+    private boolean isLikelyName(String n) {
+        if (n == null) return false;
+        n = n.trim();
+        if (n.length() < 3 || n.length() > 20) return false;
+        return n.matches("[A-Za-z0-9_]+");
     }
 }
