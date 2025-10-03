@@ -19,12 +19,15 @@ import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import meteordevelopment.meteorclient.systems.modules.player.EXPThrower;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
+import net.minecraft.util.Hand;
+import net.minecraft.item.Item;
 
 /**
  * @author Tas [0xTas] <root@0xTas.dev>
  **/
 @Mixin(value = EXPThrower.class, remap = false)
-public abstract class ExpThrowerMixin extends Module {
+public abstract class ExpThrowerMixin extends Module implements dev.stardust.accessor.ExpThrowerAutoOpenAccessor {
     public ExpThrowerMixin(Category category, String name, String description) {
         super(category, name, description);
     }
@@ -35,6 +38,10 @@ public abstract class ExpThrowerMixin extends Module {
     private @Nullable Setting<Boolean> autoToggle = null;
     @Unique
     private @Nullable Setting<Boolean> hotbarSwap = null;
+    @Unique
+    private @Nullable Setting<Boolean> autoOpen = null;
+    @Unique
+    private Float stardust$prevPitch = null;
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void addLevelCapSetting(CallbackInfo ci) {
@@ -61,43 +68,92 @@ public abstract class ExpThrowerMixin extends Module {
                 .defaultValue(false)
                 .build()
         );
+        autoOpen = this.settings.getDefaultGroup().add(
+            new BoolSetting.Builder()
+                .name("auto-open")
+                .description("After disabling at level cap, right-click once to reopen the anvil (or interact).")
+                .defaultValue(true)
+                .build()
+        );
     }
 
     @Inject(method = "onTick", at = @At("HEAD"), cancellable = true)
-    private void stopAtLevelCap(CallbackInfo ci) {
+    private void headHotbarSwapAndGuards(CallbackInfo ci) {
         if (mc.player == null) return;
+
+        // Always ensure XP bottle is selected if it exists in hotbar
+        FindItemResult hotbarBottle = InvUtils.findInHotbar(Items.EXPERIENCE_BOTTLE);
+        if (hotbarBottle.found()) {
+            int selected = ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).getSelectedSlot();
+            int slotId = hotbarBottle.slot();
+            int hotbarIndex = slotId >= 36 ? slotId - 36 : slotId; // normalize to 0..8
+            if (hotbarIndex >= 0 && hotbarIndex <= 8 && hotbarIndex != selected) {
+                ((dev.stardust.mixin.accessor.PlayerInventoryAccessor) mc.player.getInventory()).setSelectedSlot(hotbarIndex);
+                if (mc.getNetworkHandler() != null) mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(hotbarIndex));
+            }
+            return; // Let base module perform the actual throw logic this tick
+        }
+
+        // If hotbar-swap is enabled, try to bring a bottle into the hotbar
         if (hotbarSwap != null && hotbarSwap.get()) {
-            FindItemResult result = InvUtils.findInHotbar(Items.EXPERIENCE_BOTTLE);
-
-            if (!result.found()) {
-                FindItemResult result1 = InvUtils.find(Items.EXPERIENCE_BOTTLE);
-
-                if (result1.found()) {
-                    FindItemResult emptySlot = InvUtils.findInHotbar(ItemStack::isEmpty);
-
-                    if (emptySlot.found()) InvUtils.move().from(result1.slot()).to(emptySlot.slot());
+            FindItemResult invBottle = InvUtils.find(Items.EXPERIENCE_BOTTLE);
+            if (invBottle.found()) {
+                FindItemResult emptySlot = InvUtils.findInHotbar(ItemStack::isEmpty);
+                if (emptySlot.found()) InvUtils.move().from(invBottle.slot()).to(emptySlot.slot());
+                else {
+                    FindItemResult nonCriticalSlot = InvUtils.findInHotbar(stack -> !stack.contains(DataComponentTypes.TOOL) && !(stack.isIn(ItemTags.WEAPON_ENCHANTABLE)) && !(stack.contains(DataComponentTypes.FOOD)));
+                    if (nonCriticalSlot.found()) InvUtils.move().from(invBottle.slot()).to(nonCriticalSlot.slot());
                     else {
-                        FindItemResult nonCriticalSlot = InvUtils.findInHotbar(stack -> !stack.contains(DataComponentTypes.TOOL) && !(stack.isIn(ItemTags.WEAPON_ENCHANTABLE)) && !(stack.contains(DataComponentTypes.FOOD)));
-
-                        if (nonCriticalSlot.found()) InvUtils.move().from(result1.slot()).to(emptySlot.slot());
-                        else {
-                            int luckySlot = ThreadLocalRandom.current().nextInt(9);
-                            InvUtils.move().from(result1.slot()).to(luckySlot);
-                        }
+                        int luckySlot = ThreadLocalRandom.current().nextInt(9);
+                        InvUtils.move().from(invBottle.slot()).to(luckySlot);
                     }
                 }
-
+                // We moved an XP bottle; cancel so base logic can proceed next tick
                 ci.cancel();
-                return;
             }
         }
+    }
 
+    @Inject(method = "onActivate", at = @At("HEAD"))
+    private void stardust$capturePitch(CallbackInfo ci) {
+        if (mc.player != null) stardust$prevPitch = mc.player.getPitch();
+    }
+
+    @Inject(method = "onDeactivate", at = @At("TAIL"))
+    private void stardust$restorePitch(CallbackInfo ci) {
+        if (mc.player != null && stardust$prevPitch != null) {
+            mc.player.setPitch(stardust$prevPitch);
+        }
+        stardust$prevPitch = null;
+    }
+
+    @Inject(method = "onTick", at = @At("TAIL"))
+    private void tailStopAtLevelCap(CallbackInfo ci) {
+        if (mc.player == null) return;
         if (levelCap == null || levelCap.get() == 0) return;
         if (mc.player.experienceLevel >= levelCap.get()) {
-            ci.cancel();
-            if (autoToggle != null && autoToggle.get()) {
-                this.toggle();
-            }
+            if (autoToggle != null && autoToggle.get()) this.toggle();
         }
+    }
+
+    @Inject(method = "onTick", at = @At("TAIL"))
+    private void tailForceThrow(CallbackInfo ci) {
+        if (mc.player == null || mc.interactionManager == null) return;
+
+        // If we're holding an XP bottle in either hand, use it, but respect level-cap if set.
+        if (levelCap != null && levelCap.get() > 0 && mc.player.experienceLevel >= levelCap.get()) return;
+        Item main = mc.player.getMainHandStack().getItem();
+        Item off = mc.player.getOffHandStack().getItem();
+
+        if (main == Items.EXPERIENCE_BOTTLE) {
+            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+        } else if (off == Items.EXPERIENCE_BOTTLE) {
+            mc.interactionManager.interactItem(mc.player, Hand.OFF_HAND);
+        }
+    }
+
+    @Override
+    public boolean stardust$isAutoOpenEnabled() {
+        return autoOpen != null && autoOpen.get();
     }
 }

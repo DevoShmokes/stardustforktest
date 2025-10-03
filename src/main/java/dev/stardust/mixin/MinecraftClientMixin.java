@@ -16,6 +16,7 @@ import meteordevelopment.meteorclient.utils.misc.input.Input;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import dev.stardust.util.RotationRelease;
 
 /**
  * @author Tas [0xTas] <root@0xTas.dev>
@@ -125,5 +126,10 @@ public class MinecraftClientMixin {
         if (type != null) {
             cir.setReturnValue(new MusicInstance(type));
         }
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void stardust$tickRelease(CallbackInfo ci) {
+        RotationRelease.onClientTick((MinecraftClient) (Object) this);
     }
 }

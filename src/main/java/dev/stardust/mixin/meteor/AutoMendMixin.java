@@ -66,6 +66,8 @@ public abstract class AutoMendMixin extends Module {
     @Unique
     private int timer = 0;
 
+    // Removed AutoMend -> EXPThrower coupling per user request
+
     @Unique
     private void replaceElytra() {
         if (mc.player == null) return;
@@ -150,18 +152,10 @@ public abstract class AutoMendMixin extends Module {
         if (wearMendElytras == null || !wearMendElytras.get()) return;
         ItemStack chest = mc.player.getEquippedStack(EquipmentSlot.CHEST);
         if (chest.isEmpty() || chest.getItem() != Items.ELYTRA || !Utils.hasEnchantment(chest, Enchantments.MENDING) || chest.getDamage() <= 0) {
-            // momentarily pause EXPThrower to prevent inventory thrashing
-            if (auto != null && auto.get() && Modules.get().isActive(EXPThrower.class)) Modules.get().get(EXPThrower.class).toggle();
             replaceElytra();
         }
 
-        if (auto != null && auto.get() && !Modules.get().isActive(EXPThrower.class)) {
-            ++timer;
-            if (timer >= 20) {
-                timer = 0;
-                Modules.get().get(EXPThrower.class).toggle();
-            }
-        }
+        // Do not auto-enable EXPThrower from AutoMend anymore
 
         if (ignoreOffhand != null && ignoreOffhand.get()) {
             ci.cancel();

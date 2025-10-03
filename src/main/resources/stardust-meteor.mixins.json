@@ -25,7 +25,9 @@
     "BetterTooltipsMixin",
     "MeteorGuiThemeMixin",
     "PacketCancellerMixin",
+    "ModuleMixin",
     "accessor.SettingAccessor",
-    "accessor.CategoryAccessor"
+    "accessor.CategoryAccessor",
+    "RotationsMixin"
   ]
 }

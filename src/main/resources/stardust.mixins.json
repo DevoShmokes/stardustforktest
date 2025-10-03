@@ -57,6 +57,7 @@
     "accessor.PlayerListS2CPacketAccessor",
     "accessor.GrindstoneScreenHandlerAccessor",
     "accessor.EntityTrackerUpdateS2CPacketAccessor",
-    "accessor.ClientConnectionAccessor"
+    "accessor.ClientConnectionAccessor",
+    "accessor.PlayerInventoryAccessor"
   ]
 }

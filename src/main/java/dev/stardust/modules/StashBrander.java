@@ -14,6 +14,7 @@ import dev.stardust.mixin.accessor.AnvilScreenAccessor;
 import net.minecraft.client.gui.screen.ingame.AnvilScreen;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.events.world.TickEvent;
+import net.minecraft.network.packet.c2s.play.RenameItemC2SPacket;
 import meteordevelopment.meteorclient.events.world.PlaySoundEvent;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import dev.stardust.mixin.accessor.AnvilScreenHandlerAccessor;
@@ -114,6 +115,11 @@ public class StashBrander extends Module {
 
     private int timer = 0;
     private boolean notified = false;
+    private boolean renamePacketSent = false;
+    private int renameDelay = 0;
+    private int renameVerifyTicks = -1;
+    private int renameRetries = 0;
+    private boolean awaitingRename = false;
     private static final int ANVIL_OFFSET = 3;
 
     // See WorldMixin.java
@@ -172,6 +178,11 @@ public class StashBrander extends Module {
     public void onDeactivate() {
         timer = 0;
         notified = false;
+        renamePacketSent = false;
+        renameDelay = 0;
+        renameVerifyTicks = -1;
+        renameRetries = 0;
+        awaitingRename = false;
     }
 
     @EventHandler
@@ -179,6 +190,11 @@ public class StashBrander extends Module {
         if (mc.player == null) return;
         if (mc.currentScreen == null) {
             notified = false;
+            renamePacketSent = false;
+            renameDelay = 0;
+            renameVerifyTicks = -1;
+            renameRetries = 0;
+            awaitingRename = false;
             return;
         }
         if (mc.getNetworkHandler() == null) return;
@@ -196,6 +212,37 @@ public class StashBrander extends Module {
         ItemStack input2 = anvil.getSlot(AnvilScreenHandler.INPUT_2_ID).getStack();
         ItemStack output = anvil.getSlot(AnvilScreenHandler.OUTPUT_ID).getStack();
 
+        // If we're waiting to rename the newly placed item, drive the rename state machine first
+        if (awaitingRename) {
+            if (!output.isEmpty()) {
+                // Output appeared; rename complete
+                awaitingRename = false;
+                renameVerifyTicks = -1;
+                renameRetries = 0;
+            } else {
+                if (renameDelay > 0) renameDelay--; else {
+                    String desired = itemName.get();
+                    String current = ((AnvilScreenAccessor) anvilScreen).getNameField().getText();
+                    if (!renamePacketSent) {
+                        if (!desired.equals(current)) ((AnvilScreenAccessor) anvilScreen).getNameField().setText(desired);
+                        if (mc.getNetworkHandler() != null) mc.getNetworkHandler().sendPacket(new RenameItemC2SPacket(desired));
+                        renamePacketSent = true;
+                        renameVerifyTicks = 5;
+                    } else if (renameVerifyTicks > 0) {
+                        renameVerifyTicks--;
+                    } else if (renameRetries > 0) {
+                        if (!desired.equals(current)) ((AnvilScreenAccessor) anvilScreen).getNameField().setText(desired);
+                        if (mc.getNetworkHandler() != null) mc.getNetworkHandler().sendPacket(new RenameItemC2SPacket(desired));
+                        renameRetries--;
+                        renameVerifyTicks = 5;
+                    } else {
+                        // Give up retrying this cycle
+                        awaitingRename = false;
+                    }
+                }
+            }
+        }
+
         if (!hasValidItems(anvil)) finished();
         else if (input1.isEmpty() && input2.isEmpty()) {
             // fill input 1
@@ -209,6 +256,12 @@ public class StashBrander extends Module {
                     if (itemName.get().isBlank() && !stack.contains(DataComponentTypes.CUSTOM_NAME)) continue;
 
                     InvUtils.shiftClick().slotId(n);
+                    // New item placed: prepare to rename after small delay and allow retries
+                    renamePacketSent = false;
+                    renameDelay = 5; // wait a few ticks for anvil to settle (first item robustness)
+                    renameVerifyTicks = -1;
+                    renameRetries = 2;
+                    awaitingRename = true;
                     return;
                 }
             }
@@ -220,12 +273,24 @@ public class StashBrander extends Module {
                 int cost = ((AnvilScreenHandlerAccessor) anvil).getLevelCost().get();
                 if (mc.player.experienceLevel >= cost) {
                     InvUtils.shiftClick().slotId(AnvilScreenHandler.OUTPUT_ID);
+                    // Next item should trigger rename send
+                    renamePacketSent = false;
+                    renameDelay = 2;
+                    renameVerifyTicks = -1;
+                    renameRetries = 2;
+                    awaitingRename = true;
                 } else noXP();
             }
         } else if (!input2.isEmpty()) {
             // input 2 shouldn't be filled but correct it if so
             InvUtils.shiftClick().slotId(AnvilScreenHandler.INPUT_2_ID);
             ((AnvilScreenAccessor) anvilScreen).getNameField().setText(itemName.get());
+            if (mc.getNetworkHandler() != null) mc.getNetworkHandler().sendPacket(new RenameItemC2SPacket(itemName.get()));
+            renamePacketSent = true;
+            renameDelay = 1;
+            renameVerifyTicks = 5;
+            if (renameRetries < 1) renameRetries = 1;
+            awaitingRename = true;
         } else if (output.isEmpty()) {
             /*
              * See AnvilScreenMixin.java
@@ -233,10 +298,16 @@ public class StashBrander extends Module {
              * as long as the AnvilScreen is prevented from sending additional rename packets when moving stacks.
              * Occasionally the output slot fails to update, so we refresh the slot manually here and just try again.
              **/
-            if (((AnvilScreenAccessor) anvilScreen).getNameField().getText().equals(itemName.get())) {
-                InvUtils.shiftClick().slotId(AnvilScreenHandler.INPUT_1_ID);
-            } else {
-                ((AnvilScreenAccessor) anvilScreen).getNameField().setText(itemName.get());
+            String desired = itemName.get();
+            String current = ((AnvilScreenAccessor) anvilScreen).getNameField().getText();
+            // If not in awaitingRename mode (e.g., mid-stream), still ensure text+packet once
+            if (!awaitingRename) {
+                if (renameDelay > 0) { renameDelay--; return; }
+                if (!renamePacketSent) {
+                    if (!desired.equals(current)) ((AnvilScreenAccessor) anvilScreen).getNameField().setText(desired);
+                    if (mc.getNetworkHandler() != null) mc.getNetworkHandler().sendPacket(new RenameItemC2SPacket(desired));
+                    renamePacketSent = true;
+                }
             }
         }
     }
